@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int showmapping(long int, long int);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -37,3 +38,4 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+long int atoi16(const char*);

@@ -92,6 +92,24 @@ atoi(const char *s)
   return n;
 }
 
+long int
+atoi16(const char *s)
+{
+  int n;
+  
+  n = 0;
+  while(('0' <= *s && *s <= '9') || ('A' <= *s && *s <= 'F') || 
+        ('a'<= *s && *s <= 'f')) {
+    if ('0' <= *s && *s <= '9')
+      n = n*16 + *s++ - '0';
+    else if ('A' <= *s && *s <= 'F')
+      n = n*16 + *s++ - 'A' + 10;
+    else
+      n = n*16 + *s++ - 'a' + 10;
+  }
+  return n;
+}
+
 void*
 memmove(void *vdst, void *vsrc, int n)
 {
