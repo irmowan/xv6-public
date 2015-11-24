@@ -24,6 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int showmapping(long int, long int);
+int halt(void);
 
 // ulib.c
 int stat(char*, struct stat*);
