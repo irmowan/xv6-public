@@ -27,13 +27,16 @@ void enqueue(struct proc *p) {
   if (p->priority == 0) {
     p->priority = 1;
   }
+  // Add stride
   p->stride += BIG_STRIDE/p->priority;
   struct proc *q;
   if (ptable.head == 0) {
+    // Empty queue
     ptable.head = p;
     ptable.tail = p;
   }
   else {
+    // Insert process p to the queue by its stride
     if (ptable.head->stride > p->stride) {
       p->next = ptable.head;
       ptable.head = p;
@@ -42,7 +45,6 @@ void enqueue(struct proc *p) {
       ptable.tail->next = p;
       ptable.tail = p;
     }
-    // Insert the queue
     else {
       for (q = ptable.head; q != ptable.tail && p->stride > q->next->stride; q = q->next);
       p->next = q -> next;
