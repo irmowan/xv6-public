@@ -60,7 +60,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
-    // be further restricted by the permissions in the page table 
+    // be further restricted by the permissions in the page table
     // entries, if necessary.
     *pde = v2p(pgtab) | PTE_P | PTE_W | PTE_U;
   }
@@ -84,7 +84,7 @@ sys_showmapping(void)
     cprintf("0x%x\t", low);
     if (!pte || !(*pte && (*pte)&PTE_P)) {
       cprintf("No mapping.\n");
-    } 
+    }
     else {
       cprintf("0x%x\t", PTE_ADDR(*pte));
       if ((*pte)&PTE_U) cprintf("permission: user\t");
@@ -93,7 +93,7 @@ sys_showmapping(void)
       else cprintf("read only.\n");
     }
     low += PGSIZE;
-  }  
+  }
   return 0;
 }
 
@@ -116,7 +116,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-  
+
   if(argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
@@ -138,7 +138,7 @@ int
 sys_uptime(void)
 {
   uint xticks;
-  
+
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
@@ -149,5 +149,14 @@ int
 sys_halt(void)
 {
   outw(0xB004, 0x2000);
+  return 0;
+}
+
+int
+sys_setpriority(void) {
+  int priority;
+  if (argint(0, &priority) < 0)
+    return -1;
+  proc->priority = priority;
   return 0;
 }

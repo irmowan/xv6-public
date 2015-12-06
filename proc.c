@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#define BIG_STRIDE 0x7FFFFFFF
 
 struct {
   struct spinlock lock;
@@ -23,13 +24,30 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 void enqueue(struct proc *p) {
+  if (p->priority == 0) {
+    p->priority = 1;
+  }
+  p->stride += BIG_STRIDE/p->priority;
+  struct proc *q;
   if (ptable.head == 0) {
     ptable.head = p;
     ptable.tail = p;
   }
   else {
-    ptable.tail->next = p;
-    ptable.tail = p;
+    if (ptable.head->stride > p->stride) {
+      p->next = ptable.head;
+      ptable.head = p;
+    }
+    else if (ptable.tail->stride <= p->stride) {
+      ptable.tail->next = p;
+      ptable.tail = p;
+    }
+    // Insert the queue
+    else {
+      for (q = ptable.head; q != ptable.tail && p->stride > q->next->stride; q = q->next);
+      p->next = q -> next;
+      q->next = p;
+    }
   }
 }
 
@@ -76,6 +94,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->next = 0;
+  p->stride = 0;
+  p->priority = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -305,14 +325,14 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    // Round Robin scheduling
+    // Stride scheduling
     // Like original scheduling, but using dequeue to pick up the RUNNABLE process
     p = dequeue();
     if (p != 0) {
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      cprintf("CPU: %d, Process %s is running...\n", cpu->id, p->name);
+      cprintf("CPU: %d, Process %s(priority = %d) is running...\n", cpu->id, p->name, p->priority);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 

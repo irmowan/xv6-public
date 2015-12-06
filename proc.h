@@ -67,6 +67,8 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   struct proc *next;           // Next process, using in Round Robin scheduling
+  int stride;                  // Stride for Stride scheduling
+  int priority;                // Priority of process
 };
 
 // Process memory is laid out contiguously, low addresses first:
