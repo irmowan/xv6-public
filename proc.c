@@ -10,6 +10,8 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
+  struct proc *head;
+  struct proc *tail;
 } ptable;
 
 static struct proc *initproc;
@@ -20,10 +22,36 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+void enqueue(struct proc *p) {
+  if (ptable.head == 0) {
+    ptable.head = p;
+    ptable.tail = p;
+  }
+  else {
+    ptable.tail->next = p;
+    ptable.tail = p;
+  }
+}
+
+struct proc* dequeue() {
+  struct proc *p;
+  p = ptable.head;
+  if (p == 0) {
+    ptable.tail = 0;
+  }
+  else {
+    ptable.head = ptable.head->next;
+  }
+  // if ptable is empty, it will return zero.
+  return p;
+}
+
 void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  ptable.head = 0;
+  ptable.tail = 0;
 }
 
 //PAGEBREAK: 32
@@ -47,6 +75,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->next = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -100,6 +129,7 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  enqueue(p);
 }
 
 // Grow current process's memory by n bytes.
@@ -161,6 +191,7 @@ fork(void)
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+  enqueue(np);
   release(&ptable.lock);
 
   return pid;
@@ -273,6 +304,25 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    // Round Robin scheduling
+    // Like original scheduling, but using dequeue to pick up the RUNNABLE process
+    p = dequeue();
+    if (p != 0) {
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      cprintf("CPU: %d, Process %s is running...\n", cpu->id, p->name);
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+    }
+
+    // original scheduling of xv6
+    /*
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -290,6 +340,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
+    */
     release(&ptable.lock);
 
   }
@@ -321,6 +372,7 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
+  enqueue(proc);
   sched();
   release(&ptable.lock);
 }
@@ -392,8 +444,10 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+      enqueue(p);
+    }
 }
 
 // Wake up all processes sleeping on chan.
