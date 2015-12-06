@@ -23,6 +23,7 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 void enqueue(struct proc *p) {
+  // Put the process into the tail of the queue.
   if (ptable.head == 0) {
     ptable.head = p;
     ptable.tail = p;
@@ -34,6 +35,7 @@ void enqueue(struct proc *p) {
 }
 
 struct proc* dequeue() {
+  // Pick up the head process of the queue.
   struct proc *p;
   p = ptable.head;
   if (p == 0) {
@@ -42,7 +44,7 @@ struct proc* dequeue() {
   else {
     ptable.head = ptable.head->next;
   }
-  // if ptable is empty, it will return zero.
+  // If ptable is empty, it will return zero.
   return p;
 }
 
@@ -309,6 +311,9 @@ scheduler(void)
     // Like original scheduling, but using dequeue to pick up the RUNNABLE process
     p = dequeue();
     if (p != 0) {
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
